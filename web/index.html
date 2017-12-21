@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>UV Index</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css">
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"></script>
+
+    <script type="text/javascript">
+        google.charts.load('current', {'packages': ['corechart']});
+        google.charts.setOnLoadCallback(loadCities);
+
+        var jsonData;
+        var cities;
+        var city;
+
+        function updateCity(cityName) {
+            city = cityName;
+            $('#currentCity').text(city);
+            loadData();
+        }
+
+        function loadCities(){
+            $.ajax({
+                url: "data/cities.json",
+                dataType: "json",
+                success: function (data) {
+                    cities = data;
+                    cities.forEach(function(c){
+                        var menu = $(`<a class="dropdown-item" href="#">${c['name']}</a>`);
+                        menu.click(function() {
+                            updateCity(c['name']);
+                        });
+                        $("#cities").append(menu);
+                    });
+                    updateCity(cities[0]['name']);
+                }
+            });
+        }
+
+        function loadData() {
+            $.ajax({
+                url: `data/${city}.json`,
+                dataType: "json",
+                success: function (data) {
+                    jsonData = data;
+                    drawChart();
+                }
+            });
+        }
+
+        function maxChartValue(dataTable) {
+            var maxVisible = Math.min(15, Math.ceil(Math.max(dataTable.getColumnRange(11).max,dataTable.getColumnRange(12).max)));
+            switch (true) {
+                case (maxVisible <= 3):
+                    return 3;
+                case (maxVisible > 3 && maxVisible <= 6):
+                    return 6;
+                case (maxVisible > 6 && maxVisible <= 8):
+                    return 8;
+                case (maxVisible > 8 && maxVisible <= 11):
+                    return 11;
+                case (maxVisible > 11):
+                    return 15;
+            }
+        }
+
+        function drawChart() {
+            var data = new google.visualization.DataTable(jsonData);
+
+            var maxValue = maxChartValue(data);
+
+            var options = {
+                colors: ['#4CAF50', '#FFEB3B', '#FF9800', '#f44336', '#673AB7', '#90A4AE', '#b71c1c'],
+                curveType: 'function',
+                isStacked: true,
+                width: '100%',
+                height: '100%',
+                chartArea: {
+                    left: 20,
+                    top: 5,
+                    width: '100%',
+                    height: '90%'
+                },
+                interpolateNulls: true,
+                legend: {position: 'none'},
+                seriesType: 'line',
+                vAxis: {
+                    viewWindow: {max: maxValue},
+                    ticks: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+                },
+                hAxis: {
+                    format: 'h a',
+                    gridlines: {count: 15}
+                },
+                series: {
+                    0: {type: 'area', lineWidth: 0},
+                    1: {type: 'area', lineWidth: 0},
+                    2: {type: 'area', lineWidth: 0},
+                    3: {type: 'area', lineWidth: 0},
+                    4: {type: 'area', lineWidth: 0}
+                }
+            };
+
+            var chart = new google.visualization.ComboChart(document.getElementById('chart'));
+            chart.draw(data, options);
+        }
+
+        $(window).resize(function () {
+            drawChart();
+        });
+
+    </script>
+
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="cityDropdown" role="button" data-toggle="dropdown"
+                   aria-haspopup="true" aria-expanded="false">
+                    City
+                </a>
+                <div id="cities" class="dropdown-menu" aria-labelledby="navbarDropdown">
+                </div>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-toggle="dropdown"
+                   aria-haspopup="true" aria-expanded="false">
+                    Settings
+                </a>
+                <form class="dropdown-menu p-4">
+                    <div class="form-group">
+                        <label for="thresholdValue">Threshold</label>
+                        <input type="text" class="form-control" id="thresholdValue" placeholder="UV Index">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </form>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-toggle="modal" data-target="#aboutModal">About</a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Body -->
+<div class="container" style="height: 90vh">
+    <div>
+        <h2 class="text-center"><span id="currentCity"></span> 5.5/2.2</h2>
+        <h3 class="text-center">Below 3: before 10:00, after 17:00</h3>
+    </div>
+    <div id="chart" style="height: 80%"></div>
+</div>
+
+<!-- About -->
+<div class="modal fade" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="aboutModal" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="aboutModalTitle">About uvindx.info</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                ...
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
