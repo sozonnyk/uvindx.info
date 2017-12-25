@@ -13,8 +13,12 @@ class UvIndexService:
         s3.write_file('./web/data/cities.json', json.dumps(cities))
 
         for city in cities:
-            data = api.uv_data_string(city['lon'], city['lat'])
-            s3.write_file('./web/data/{}.json'.format(city['name']), data)
+            try:
+                data = api.uv_data_string(city['lon'], city['lat'])
+                s3.write_file('./web/data/{}.json'.format(city['name']), data)
+            except Exception as e:
+                print("Exception: {0}".format(e))
+                pass
 
 
 def lambda_handler(event, context):

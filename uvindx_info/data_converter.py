@@ -1,30 +1,41 @@
 from datetime import datetime
 import gviz_api
-import json
+from tzwhere import tzwhere
 
 class DataConverter:
+
+    tzwhere = tzwhere.tzwhere()
+
+    @staticmethod
+    def round_if_float(value):
+        return round(value,2) if isinstance(value, float) else value
 
     @staticmethod
     def convert_uv_value(val):
         return {'date': datetime.strptime(val['Date'], '%Y-%m-%d %H:%M'),
-                'forecast': val['Forecast'],
-                'measured': val['Measured'],
-                'low': 3,
-                'low_tooltip': 'Low',
-                'medium': 3,
-                'medium_tooltip': 'Medium',
-                'high': 2,
-                'high_tooltip': 'High',
-                'very_high': 3,
-                'very_high_tooltip': 'Very High',
-                'extreme': 4,
-                'extreme_tooltip': 'Extreme'}
+            'forecast': DataConverter.round_if_float(val['Forecast']),
+            'measured': DataConverter.round_if_float(val['Measured']),
+            'low': 3,
+            'low_tooltip': 'Low',
+            'medium': 3,
+            'medium_tooltip': 'Medium',
+            'high': 2,
+            'high_tooltip': 'High',
+            'very_high': 3,
+            'very_high_tooltip': 'Very High',
+            'extreme': 4,
+            'extreme_tooltip': 'Extreme'}
 
     @staticmethod
     def convert_city_value(val):
-        return {'name': val['SiteName'].strip(),
-                'lon': val['SiteLongitude'],
-                'lat': val['SiteLatitude']}
+        lat = val['SiteLatitude']
+        lon = val['SiteLongitude']
+        tzone = DataConverter.tzwhere.tzNameAt(lat, lon) or 'unknown'
+        if tzone.startswith('Australia'):
+            return {'name': val['SiteName'].strip(),
+                    'lon': lon,
+                    'lat': lat,
+                    'tzone': tzone}
 
     def convert_uv_data(self, data):
 
@@ -56,7 +67,7 @@ class DataConverter:
                                                 'forecast', 'measured'])
 
     def convert_cities(self, data):
-        cities = list(map(DataConverter.convert_city_value, data))
+        cities = list(filter(None.__ne__, map(DataConverter.convert_city_value, data)))
         cities.sort(key=lambda city: city['name'])
         return cities
 

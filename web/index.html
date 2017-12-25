@@ -6,41 +6,122 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.20.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.14/moment-timezone-with-data.min.js"></script>
+    <script src="https://unpkg.com/geolib@2.0.24/dist/geolib.js"></script>
     <script src="https://www.gstatic.com/charts/loader.js"></script>
     <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"></script>
 
     <script type="text/javascript">
-        google.charts.load('current', {'packages': ['corechart']});
-        google.charts.setOnLoadCallback(loadCities);
 
         var jsonData;
+        var chartData;
         var cities;
         var city;
+        var tz;
+        var localTime;
+        var threshold;
+        var autodetect;
 
-        function updateCity(cityName) {
-            city = cityName;
-            $('#currentCity').text(city);
-            loadData();
+        google.charts.load('current', {'packages': ['corechart']});
+        google.charts.setOnLoadCallback(onLoad);
+
+        function findLocation() {
+            navigator.geolocation.getCurrentPosition(
+                    function (pos) {
+                        var currentLocation = {
+                            latitude: pos.coords.latitude,
+                            longitude: pos.coords.longitude
+                        };
+                        var citiesLocations = cities.reduce(function(acc, val) {
+                                            acc[val['name']] = {latitude: val['lat'], longitude: val['lon']};
+                                            return acc; }, {})
+
+                        var nearest = geolib.findNearest(currentLocation, citiesLocations);
+                        updateCity(cities.find(function(c) {
+                           return c.name === nearest.key;
+                        }));
+
+                    },
+                    function (err) {
+                        console.warn(`ERROR(${err.code}): ${err.message}`);
+                        autodetect = false;
+                        saveSettings();
+                        updateCity(cities.find(function(c) {
+                            return c.name === city;
+                        }));
+                    }, {
+                        enableHighAccuracy: false,
+                        maximumAge: 3600000
+                    });
         }
 
-        function loadCities(){
+        function onLoad() {
+            prepareSettings();
+            loadCities();
+        }
+
+        function saveSettings(){
+            localStorage.setItem("threshold", threshold);
+            localStorage.setItem("autodetect", autodetect);
+            localStorage.setItem("city", city);
+        }
+
+        function prepareSettings() {
+            threshold = localStorage.getItem("threshold") || 3;
+            autodetect = localStorage.getItem("autodetect") === 'true';
+            city = localStorage.getItem("city") || 'Sydney';
+
+            $('#thresholdValue').val(threshold);
+            $('#thresholdSave').click(function () {
+                threshold = $('#thresholdValue').val();
+                saveSettings();
+                thresholdValues(chartData);
+            });
+            $('#autodetect').click(function () {
+                autodetect = true;
+                saveSettings();
+                findLocation();
+            });
+        }
+
+        function loadCities() {
             $.ajax({
                 url: "data/cities.json",
                 dataType: "json",
                 success: function (data) {
                     cities = data;
-                    cities.forEach(function(c){
+                    cities.forEach(function (c) {
                         var menu = $(`<a class="dropdown-item" href="#">${c['name']}</a>`);
-                        menu.click(function() {
-                            updateCity(c['name']);
+                        menu.click(function () {
+                            autodetect = false;
+                            updateCity(c);
                         });
                         $("#cities").append(menu);
                     });
-                    updateCity(cities[0]['name']);
+
+                    if (autodetect) {
+                        findLocation();
+                    } else {
+                        updateCity(cities.find(function(c) {
+                            return c.name === city;
+                        }));
+                    }
+
                 }
             });
+        }
+
+        function updateCity(cityData) {
+            city = cityData['name'];
+            tz = cityData['tzone'];
+            localTime = moment(new Date()).tz(tz).format('HH:mm');
+            $('#currentCity').text(`${city} ${localTime}`);
+            saveSettings();
+            loadData();
         }
 
         function loadData() {
@@ -49,13 +130,69 @@
                 dataType: "json",
                 success: function (data) {
                     jsonData = data;
-                    drawChart();
+                    prepareData();
                 }
             });
         }
 
+        function prepareData() {
+            chartData = new google.visualization.DataTable(jsonData);
+
+            currentValues(chartData);
+            thresholdValues(chartData);
+            drawChart();
+        }
+
+        function formatTime(date) {
+            return date.getHours() + ":" + ("0" + date.getMinutes()).slice(-2);
+        }
+
+        function thresholdValues(dataTable) {
+
+            for (var i = 0; i < dataTable.getNumberOfRows(); i++) {
+                var diff = threshold - dataTable.getValue(i, 11);
+                if (diff <= 0) {
+                    var low = dataTable.getValue(i, 0);
+                    break;
+                }
+            }
+
+            for (var i = dataTable.getNumberOfRows() - 1; i > 0; i--) {
+                var diff = threshold - dataTable.getValue(i, 11);
+                if (diff <= 0) {
+                    var high = dataTable.getValue(i, 0);
+                    break;
+                }
+            }
+
+            $('#threshold').text(threshold);
+            $('#thresholdLow').text(formatTime(low));
+            $('#thresholdHigh').text(formatTime(high));
+
+        }
+
+        function currentValues(dataTable) {
+            var now = new Date();
+            //var now = new Date(2017, 11, 23, 13, 0, 0, 0);
+
+            var min = now - dataTable.getValue(0, 0);
+            var min_idx = 0;
+
+            for (var i = 0; i < dataTable.getNumberOfRows(); i++) {
+                var diff = Math.abs(now - dataTable.getValue(i, 0));
+                if (diff < min) {
+                    min = diff;
+                    min_idx = i;
+                }
+            }
+
+            var currentValue = min < 5 * 60 * 1000 ? `${dataTable.getValue(min_idx, 11)}/${dataTable.getValue(min_idx, 12)}` : 'No Data'
+
+            $('#currentValue').text(currentValue);
+        }
+
         function maxChartValue(dataTable) {
-            var maxVisible = Math.min(15, Math.ceil(Math.max(dataTable.getColumnRange(11).max,dataTable.getColumnRange(12).max)));
+            var maxVisible = Math.min(15, Math.ceil(Math.max(dataTable.getColumnRange(11).max, dataTable.getColumnRange(12).max)));
             switch (true) {
                 case (maxVisible <= 3):
                     return 3;
@@ -71,9 +208,7 @@
         }
 
         function drawChart() {
-            var data = new google.visualization.DataTable(jsonData);
-
-            var maxValue = maxChartValue(data);
+            var maxValue = maxChartValue(chartData);
 
             var options = {
                 colors: ['#4CAF50', '#FFEB3B', '#FF9800', '#f44336', '#673AB7', '#90A4AE', '#b71c1c'],
@@ -82,7 +217,7 @@
                 width: '100%',
                 height: '100%',
                 chartArea: {
-                    left: 20,
+                    left: 25,
                     top: 5,
                     width: '100%',
                     height: '90%'
@@ -95,7 +230,7 @@
                     ticks: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
                 },
                 hAxis: {
-                    format: 'h a',
+                    format: 'H:mm',
                     gridlines: {count: 15}
                 },
                 series: {
@@ -108,7 +243,9 @@
             };
 
             var chart = new google.visualization.ComboChart(document.getElementById('chart'));
-            chart.draw(data, options);
+            $('#splash').addClass('d-none');
+            $('#mainContent').removeClass('d-none');
+            chart.draw(chartData, options);
         }
 
         $(window).resize(function () {
@@ -133,6 +270,8 @@
                     City
                 </a>
                 <div id="cities" class="dropdown-menu" aria-labelledby="navbarDropdown">
+                    <a class="dropdown-item" href="#" id="autodetect">Auto Detect</a>
+                    <div class="dropdown-divider"></div>
                 </div>
             </li>
             <li class="nav-item dropdown">
@@ -145,7 +284,8 @@
                         <label for="thresholdValue">Threshold</label>
                         <input type="text" class="form-control" id="thresholdValue" placeholder="UV Index">
                     </div>
-                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button id="thresholdSave" type="button" class="btn btn-primary" data-toggle="dropdown">Save
+                    </button>
                 </form>
             </li>
             <li class="nav-item">
@@ -157,11 +297,18 @@
 
 <!-- Body -->
 <div class="container" style="height: 90vh">
-    <div>
-        <h2 class="text-center"><span id="currentCity"></span> 5.5/2.2</h2>
-        <h3 class="text-center">Below 3: before 10:00, after 17:00</h3>
+    <div id="splash" >
+        <h1 class="text-center">Loading...</h1>
     </div>
-    <div id="chart" style="height: 80%"></div>
+    <div id='mainContent' class="d-none" style="height: 80%">
+        <div>
+            <h2 class="text-center"><span id="currentCity"></span> <span id="currentValue"></span></h2>
+            <h3 class="text-center">Below <span id="threshold"></span>: before <span id="thresholdLow"></span>, after <span
+                    id="thresholdHigh"></span></h3>
+        </div>
+        <div id="chart" style="height: 100%"></div>
+    </div>
+
 </div>
 
 <!-- About -->
@@ -175,7 +322,12 @@
                 </button>
             </div>
             <div class="modal-body">
-                ...
+                <p>UV observations courtesy of <a
+                        href="https://www.arpansa.gov.au/our-services/monitoring/ultraviolet-radiation-monitoring">ARPANSA</a>
+                </p>
+                <p>
+                    <a href="https://www.arpansa.gov.au/services/monitoring/ultraviolet-radiation-monitoring/ultraviolet-radation-data-information#Disclaimer">Data
+                        disclaimer</a></p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
