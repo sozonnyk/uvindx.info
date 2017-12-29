@@ -1,0 +1,68 @@
+[
+  {
+    "lon": 138.62,
+    "lat": -34.92,
+    "tzone": "Australia/Adelaide",
+    "name": "Adelaide"
+  },
+  {
+    "lon": 133.8,
+    "lat": -23.7,
+    "tzone": "Australia/Darwin",
+    "name": "Alice Springs"
+  },
+  {
+    "lon": 153.03,
+    "lat": -27.45,
+    "tzone": "Australia/Brisbane",
+    "name": "Brisbane"
+  },
+  {
+    "lon": 149.2,
+    "lat": -35.31,
+    "tzone": "Australia/Sydney",
+    "name": "Canberra"
+  },
+  {
+    "lon": 130.89,
+    "lat": -12.43,
+    "tzone": "Australia/Darwin",
+    "name": "Darwin"
+  },
+  {
+    "lon": 147.29,
+    "lat": -42.99,
+    "tzone": "Australia/Hobart",
+    "name": "Kingston"
+  },
+  {
+    "lon": 145.1,
+    "lat": -37.73,
+    "tzone": "Australia/Melbourne",
+    "name": "Melbourne"
+  },
+  {
+    "lon": 151.72,
+    "lat": -32.9,
+    "tzone": "Australia/Sydney",
+    "name": "Newcastle"
+  },
+  {
+    "lon": 115.96,
+    "lat": -31.92,
+    "tzone": "Australia/Perth",
+    "name": "Perth"
+  },
+  {
+    "lon": 151.1,
+    "lat": -34.04,
+    "tzone": "Australia/Sydney",
+    "name": "Sydney"
+  },
+  {
+    "lon": 146.76,
+    "lat": -19.33,
+    "tzone": "Australia/Brisbane",
+    "name": "Townsville"
+  }
+]

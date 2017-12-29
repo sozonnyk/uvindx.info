@@ -1,10 +1,7 @@
 from datetime import datetime
 import gviz_api
-from tzwhere import tzwhere
 
 class DataConverter:
-
-    tzwhere = tzwhere.tzwhere()
 
     @staticmethod
     def round_if_float(value):
@@ -25,17 +22,6 @@ class DataConverter:
             'very_high_tooltip': 'Very High',
             'extreme': 4,
             'extreme_tooltip': 'Extreme'}
-
-    @staticmethod
-    def convert_city_value(val):
-        lat = val['SiteLatitude']
-        lon = val['SiteLongitude']
-        tzone = DataConverter.tzwhere.tzNameAt(lat, lon) or 'unknown'
-        if tzone.startswith('Australia'):
-            return {'name': val['SiteName'].strip(),
-                    'lon': lon,
-                    'lat': lat,
-                    'tzone': tzone}
 
     def convert_uv_data(self, data):
 
@@ -66,10 +52,6 @@ class DataConverter:
                                                 'extreme', 'extreme_tooltip',
                                                 'forecast', 'measured'])
 
-    def convert_cities(self, data):
-        cities = list(filter(None.__ne__, map(DataConverter.convert_city_value, data)))
-        cities.sort(key=lambda city: city['name'])
-        return cities
 
 
 #

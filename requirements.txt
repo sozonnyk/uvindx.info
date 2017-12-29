@@ -1,5 +1,4 @@
 requests
-boto
+boto3
 pytz
 gviz_api
-tzwhere

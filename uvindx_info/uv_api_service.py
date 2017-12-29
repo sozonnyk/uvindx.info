@@ -22,10 +22,6 @@ class UvApiService:
         req.raise_for_status()
         return req.json()
 
-    def cities(self):
-        return self.converter.convert_cities(
-                UvApiService.req('https://uvdata.arpansa.gov.au/api/categoriesSites'))
-
     def uv_data_string(self, lon, lat, date=timezone('Australia/Sydney').localize(datetime.today())):
         params = {'longitude':UvApiService.format_coordinate(lon),
                   'latitude': UvApiService.format_coordinate(lat),
