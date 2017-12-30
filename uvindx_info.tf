@@ -81,7 +81,7 @@ resource "aws_lambda_function" "uvindx_info_lambda" {
   source_code_hash = "${base64sha256(file("uvindx_info_lambda.zip"))}"
   runtime = "python3.6"
   timeout = 300
-  memory_size = 512
+  memory_size = 256
 
   environment {
     variables = {
@@ -105,8 +105,8 @@ resource "aws_cloudwatch_event_target" "lambda_event_target" {
 }
 
 resource "aws_cloudwatch_event_rule" "lambda_event_rule" {
-  name = "cron-daytime-5-min"
-  schedule_expression = "cron(0/5 20-13 * * ? *)"
+  name = "cron-daytime-1-min"
+  schedule_expression = "cron(0/1 20-13 * * ? *)"
 }
 
 resource "aws_s3_bucket_object" "index_html" {
@@ -159,7 +159,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
       "GET",
       "HEAD"]
     target_origin_id = "s3origin"
-
+    compress = true
     forwarded_values {
       query_string = false
 
@@ -169,9 +169,9 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     }
 
     viewer_protocol_policy = "redirect-to-https"
-    min_ttl = 0
-    default_ttl = 0
-    max_ttl = 0
+    min_ttl = 60
+    default_ttl = 60
+    max_ttl = 60
   }
 
   custom_error_response = [

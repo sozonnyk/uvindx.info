@@ -22,7 +22,9 @@ class UvApiService:
         req.raise_for_status()
         return req.json()
 
-    def uv_data_string(self, lon, lat, date=timezone('Australia/Sydney').localize(datetime.today())):
+    def uv_data_string(self, lon, lat):
+        today = timezone('UTC').localize(datetime.today())
+        date = today.astimezone(timezone('Australia/Sydney'))
         params = {'longitude':UvApiService.format_coordinate(lon),
                   'latitude': UvApiService.format_coordinate(lat),
                   'date': UvApiService.format_date(date)}

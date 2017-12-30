@@ -1,7 +1,16 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>UV Index</title>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-111636778-1"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-111636778-1');
+    </script>
+
+    <title>Australian UV Index</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
@@ -11,7 +20,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.14/moment-timezone-with-data.min.js"></script>
     <script src="https://unpkg.com/geolib@2.0.24/dist/geolib.js"></script>
     <script src="https://www.gstatic.com/charts/loader.js"></script>
-    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"></script>
 
@@ -25,6 +34,9 @@
         var localTime;
         var threshold;
         var autodetect;
+
+        const FORECAST_COLUMN = 11;
+        const MEASURED_COLUMN = 12;
 
         google.charts.load('current', {'packages': ['corechart']});
         google.charts.setOnLoadCallback(onLoad);
@@ -118,8 +130,8 @@
         function updateCity(cityData) {
             city = cityData['name'];
             tz = cityData['tzone'];
-            localTime = moment(new Date()).tz(tz).format('HH:mm');
-            $('#currentCity').text(`${city} ${localTime}`);
+            localTime = moment(new Date()).tz(tz);
+            $('#currentCity').text(`${city} ${localTime.format('HH:mm')}`);
             saveSettings();
             loadData();
         }
@@ -150,7 +162,7 @@
         function thresholdValues(dataTable) {
 
             for (var i = 0; i < dataTable.getNumberOfRows(); i++) {
-                var diff = threshold - dataTable.getValue(i, 11);
+                var diff = threshold - dataTable.getValue(i, FORECAST_COLUMN);
                 if (diff <= 0) {
                     var low = dataTable.getValue(i, 0);
                     break;
@@ -158,7 +170,7 @@
             }
 
             for (var i = dataTable.getNumberOfRows() - 1; i > 0; i--) {
-                var diff = threshold - dataTable.getValue(i, 11);
+                var diff = threshold - dataTable.getValue(i, FORECAST_COLUMN);
                 if (diff <= 0) {
                     var high = dataTable.getValue(i, 0);
                     break;
@@ -172,27 +184,26 @@
         }
 
         function currentValues(dataTable) {
-            var now = new Date();
             //var now = new Date(2017, 11, 23, 13, 0, 0, 0);
 
-            var min = now - dataTable.getValue(0, 0);
+            var min = localTime - dataTable.getValue(0, 0);
             var min_idx = 0;
 
             for (var i = 0; i < dataTable.getNumberOfRows(); i++) {
-                var diff = Math.abs(now - dataTable.getValue(i, 0));
+                var diff = Math.abs(localTime - dataTable.getValue(i, 0));
                 if (diff < min) {
                     min = diff;
                     min_idx = i;
                 }
             }
 
-            var currentValue = min < 5 * 60 * 1000 ? `${dataTable.getValue(min_idx, 11)}/${dataTable.getValue(min_idx, 12)}` : 'No Data'
+            var currentValue = min < 5 * 60 * 1000 ? `${dataTable.getValue(min_idx, FORECAST_COLUMN)}/${dataTable.getValue(min_idx, MEASURED_COLUMN)}` : 'No Data'
 
             $('#currentValue').text(currentValue);
         }
 
         function maxChartValue(dataTable) {
-            var maxVisible = Math.min(15, Math.ceil(Math.max(dataTable.getColumnRange(11).max, dataTable.getColumnRange(12).max)));
+            var maxVisible = Math.min(15, Math.ceil(Math.max(dataTable.getColumnRange(FORECAST_COLUMN).max, dataTable.getColumnRange(MEASURED_COLUMN).max)));
             switch (true) {
                 case (maxVisible <= 3):
                     return 3;
@@ -239,6 +250,9 @@
                     2: {type: 'area', lineWidth: 0},
                     3: {type: 'area', lineWidth: 0},
                     4: {type: 'area', lineWidth: 0}
+                },
+                annotations: {
+                    style: 'line'
                 }
             };
 

@@ -10,3 +10,5 @@ pip install -t ./build/ ./
 
 cp ./uvindx_info_lambda.py ./build/
 cd ./build && zip -r ../$OUT_FILE ./*
+
+terraform apply -auto-approve=true
