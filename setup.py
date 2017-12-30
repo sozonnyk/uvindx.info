@@ -17,7 +17,7 @@ setup(
         package_data={'uvindx_info': ['*.json']},
         author_email='andrew@sozonnyk.com',
         maintainer='Andrew Sozonnyk',
-        maintainer_email=''andrew@sozonnyk.com',
+        maintainer_email='andrew@sozonnyk.com',
         classifiers=[
             'Intended Audience :: Developers',
             'License :: OSI Approved :: MIT License',
