@@ -10,7 +10,7 @@
         gtag('config', 'UA-111636778-1');
     </script>
 
-    <title>Australian UV Index</title>
+    <title>UV Indx</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
@@ -33,10 +33,24 @@
         var tz;
         var localTime;
         var threshold;
+
+        var currentForecasDate;
+        var currentForecastValue;
+
+        var currentMeasuredDate;
+        var currentMeasuredValue;
+
+        var lowDate;
+        var highDate;
+
         var autodetect;
 
         const FORECAST_COLUMN = 11;
-        const MEASURED_COLUMN = 12;
+        const MEASURED_COLUMN = 14;
+
+        //const PREFIX = 'https://uvindx.info/';
+        //const PREFIX = 'http://localhost:63342/uv-index/web/';
+        const PREFIX = '';
 
         google.charts.load('current', {'packages': ['corechart']});
         google.charts.setOnLoadCallback(onLoad);
@@ -102,7 +116,7 @@
 
         function loadCities() {
             $.ajax({
-                url: "cities.json",
+                url: PREFIX + "cities.json",
                 dataType: "json",
                 success: function (data) {
                     cities = data;
@@ -130,15 +144,16 @@
         function updateCity(cityData) {
             city = cityData['name'];
             tz = cityData['tzone'];
-            localTime = moment(new Date()).tz(tz);
-            $('#currentCity').text(`${city} ${localTime.format('HH:mm')}`);
+            //var now = new Date(2017, 11, 23, 13, 0, 0, 0);
+            var now = new Date();
+            localTime = moment(now).tz(tz);
             saveSettings();
             loadData();
         }
 
         function loadData() {
             $.ajax({
-                url: `data/${city}.json`,
+                url: PREFIX + `data/${city}.json`,
                 dataType: "json",
                 success: function (data) {
                     jsonData = data;
@@ -149,14 +164,23 @@
 
         function prepareData() {
             chartData = new google.visualization.DataTable(jsonData);
-
-            currentValues(chartData);
+//            currentValues(chartData);
             thresholdValues(chartData);
+            updateText();
             drawChart();
         }
 
+        function updateText() {
+            $('#line-1').text(`${city}, local time ${localTime.format('HH:mm')}`);
+//            $('#line-2').text(`Forecast: ${currentForecastValue} at ${currentForecastDate.format('HH:mm')}`);
+//            $('#line-3').text(`Measured: ${currentMeasuredValue} at ${currentMeasuredDate.format('HH:mm')}`);
+            if (highDate && lowDate) {
+                $('#line-4').text(`Above ${threshold}: ${formatTime(lowDate)} - ${formatTime(highDate)}`);
+            }
+        }
+
         function formatTime(date) {
-            return date.getHours() + ":" + ("0" + date.getMinutes()).slice(-2);
+            return date ? date.getHours() + ":" + ("0" + date.getMinutes()).slice(-2) : "";
         }
 
         function thresholdValues(dataTable) {
@@ -164,7 +188,7 @@
             for (var i = 0; i < dataTable.getNumberOfRows(); i++) {
                 var diff = threshold - dataTable.getValue(i, FORECAST_COLUMN);
                 if (diff <= 0) {
-                    var low = dataTable.getValue(i, 0);
+                     lowDate = dataTable.getValue(i, 0);
                     break;
                 }
             }
@@ -172,19 +196,13 @@
             for (var i = dataTable.getNumberOfRows() - 1; i > 0; i--) {
                 var diff = threshold - dataTable.getValue(i, FORECAST_COLUMN);
                 if (diff <= 0) {
-                    var high = dataTable.getValue(i, 0);
+                     highDate = dataTable.getValue(i, 0);
                     break;
                 }
             }
-
-            $('#threshold').text(threshold);
-            $('#thresholdLow').text(formatTime(low));
-            $('#thresholdHigh').text(formatTime(high));
-
         }
 
         function currentValues(dataTable) {
-            //var now = new Date(2017, 11, 23, 13, 0, 0, 0);
 
             var min = localTime - dataTable.getValue(0, 0);
             var min_idx = 0;
@@ -197,9 +215,12 @@
                 }
             }
 
-            var currentValue = min < 5 * 60 * 1000 ? `${dataTable.getValue(min_idx, FORECAST_COLUMN)}/${dataTable.getValue(min_idx, MEASURED_COLUMN)}` : 'No Data'
+            currentForecastDate = moment(min);
+            currentForecastValue = dataTable.getValue(min_idx, FORECAST_COLUMN);
 
-            $('#currentValue').text(currentValue);
+            currentMeasuredDate = currentForecastDate;
+            currentMeasuredValue = dataTable.getValue(min_idx, MEASURED_COLUMN);
+
         }
 
         function maxChartValue(dataTable) {
@@ -270,7 +291,9 @@
 
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <h1 class="navbar-brand">UV Indx</h1>
+
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
             aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -316,9 +339,10 @@
     </div>
     <div id='mainContent' class="d-none" style="height: 80%">
         <div>
-            <h2 class="text-center"><span id="currentCity"></span> <span id="currentValue"></span></h2>
-            <h3 class="text-center">Below <span id="threshold"></span>: before <span id="thresholdLow"></span>, after <span
-                    id="thresholdHigh"></span></h3>
+            <h3 class="text-center"><span id="line-1"></span></h3>
+            <h3 class="text-center"><span id="line-2"></span></h3>
+            <h3 class="text-center"><span id="line-3"></span></h3>
+            <h3 class="text-center"><span id="line-4"></span></h3>
         </div>
         <div id="chart" style="height: 100%"></div>
     </div>
