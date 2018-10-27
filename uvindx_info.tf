@@ -6,6 +6,11 @@ resource "aws_s3_bucket" "bucket_web" {
   bucket = "uvindx_info_web"
   acl = "private"
   force_destroy = true
+  cors_rule {
+    allowed_methods = ["GET","HEAD"]
+    allowed_headers = ["*"]
+    allowed_origins = ["*"]
+  }
 }
 
 resource "aws_s3_bucket_policy" "bucket_policy" {
