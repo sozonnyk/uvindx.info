@@ -1,7 +1,10 @@
 import requests
 from pytz import timezone
 from datetime import datetime
+from tzlocal import get_localzone
 from .data_converter import DataConverter
+import urllib3
+urllib3.disable_warnings()
 
 class UvApiService:
 
@@ -18,12 +21,12 @@ class UvApiService:
 
     @staticmethod
     def req(url, payload={}):
-        req = requests.get(url, payload)
+        req = requests.get(url, payload, verify=False)
         req.raise_for_status()
         return req.json()
 
     def uv_data_string(self, lon, lat):
-        today = timezone('UTC').localize(datetime.today())
+        today = get_localzone().localize(datetime.today())
         date = today.astimezone(timezone('Australia/Sydney'))
         params = {'longitude':UvApiService.format_coordinate(lon),
                   'latitude': UvApiService.format_coordinate(lat),

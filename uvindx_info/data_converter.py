@@ -11,7 +11,11 @@ class DataConverter:
     def convert_uv_value(val):
         return {'date': datetime.strptime(val['Date'], '%Y-%m-%d %H:%M'),
             'forecast': DataConverter.round_if_float(val['Forecast']),
+            'forecast_annotation':   None,
+            'forecast_annotation_text':  None,
             'measured': DataConverter.round_if_float(val['Measured']),
+            'measured_annotation': None,
+            'measured_annotation_text': None,
             'low': 3,
             'low_tooltip': 'Low',
             'medium': 3,
@@ -27,7 +31,11 @@ class DataConverter:
 
         description = {"date": ("datetime", "Time", {"role": "domain"}),
                        "forecast": ("number", "Forecast"),
+                       "forecast_annotation": ('string', '', {"role": "annotation"}),
+                       "forecast_annotation_text": ('string', '', {"role": "annotationText"}),
                        "measured": ("number", "Measured"),
+                       "measured_annotation": ('string', '', {"role": "annotation"}),
+                       "measured_annotation_text": ('string', '', {"role": "annotationText"}),
                        "low": ("number", "Low"),
                        "low_tooltip": ("string", "Low", {"role": "tooltip"}),
                        "medium": ("number", "Medium"),
@@ -42,6 +50,11 @@ class DataConverter:
 
         data = list(map(DataConverter.convert_uv_value, data['GraphData']))
 
+        for e in reversed(data):
+            if e['measured'] is not None:
+                e['measured_annotation'] = "%.2f @ %s" % (e['measured'], datetime.strftime(e['date'], '%H:%M'))
+                break
+
         data_table = gviz_api.DataTable(description)
         data_table.LoadData(data)
 
@@ -50,7 +63,10 @@ class DataConverter:
                                                 'high', 'high_tooltip',
                                                 'very_high', 'very_high_tooltip',
                                                 'extreme', 'extreme_tooltip',
-                                                'forecast', 'measured'])
+                                                'forecast', 'forecast_annotation',
+                                                "forecast_annotation_text",
+                                                'measured','measured_annotation',
+                                                'measured_annotation_text'])
 
 
 

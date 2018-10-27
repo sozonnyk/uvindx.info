@@ -10,10 +10,8 @@ class S3Dao:
     def write_file(self, name, data):
         S3Dao.s3.Object(S3Dao.bucket, name).put(Body=data, ContentType='application/json')
 
-        # print(os.getenv('S3_BUCKET'))
         # print('Writing {}'.format(name))
-        #
-        # with open(name, 'w') as outfile:
+        # with open('./web/' + name, 'w') as outfile:
         #     outfile.write(data)
 
 
